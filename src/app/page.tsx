@@ -47,7 +47,14 @@ type Attendee = {
   avatar: string;
   status: "going" | "maybe" | "not-going";
 };
-
+interface NewEventState {
+  title?: string;
+  date?: Date;
+  description?: string;
+  location?: string;
+  image?: string;
+  imageFile?: File | null;
+}
 type User = {
   id: string;
   name: string;
@@ -80,7 +87,7 @@ const mockEvents: Event[] = [
   {
     id: "1",
     title: "Team Building Workshop",
-    date: new Date(2025, 4, 10), // May 10, 2025
+    date: new Date(2025, 4, 10),
     description:
       "Join us for an exciting day of team building activities and discussions!",
     attendees: [
@@ -152,7 +159,7 @@ const mockEvents: Event[] = [
   {
     id: "3",
     title: "Monthly Book Club",
-    date: new Date(2025, 4, 22), // May 22, 2025
+    date: new Date(2025, 4, 22),
     description:
       'Discussing "The Silent Echo" by J.K. Morgan. Please read chapters 1-5 before attending.',
     attendees: [
@@ -236,13 +243,13 @@ export default function GroupEventPlanner() {
     null | "events" | "reminders" | "profile" | "settings" | "suggest" | "rsvp"
   >(null);
 
-  const [newEvent, setNewEvent] = useState<
-    Partial<Event> & { imageFile?: File }
-  >({
+  const [newEvent, setNewEvent] = useState<NewEventState>({
     title: "",
     date: new Date(),
     description: "",
     location: "",
+    image: undefined,
+    imageFile: null,
   });
 
   const [newReminder, setNewReminder] = useState<Partial<Reminder>>({
@@ -305,16 +312,30 @@ export default function GroupEventPlanner() {
     }
 
     const id = (events.length + 1).toString();
-
     const event: Event = {
       id,
       title: newEvent.title || "",
-      date: new Date(newEvent.date),
+      date: new Date(newEvent.date || new Date()),
       description: newEvent.description || "",
       attendees: [{ ...currentUser, status: "going" }],
-      location: newEvent.location!,
-      image: newEvent.image ?? undefined,
+      location: newEvent.location || ""
     };
+    
+    // Add the image property only if it exists
+    if (newEvent.image) {
+      event.image = newEvent.image;
+    }
+  
+    setEvents([...events, event]);
+    setNewEvent({
+      title: "",
+      date: new Date(),
+      description: "",
+      location: "",
+      image: undefined,
+      imageFile: null,
+    });
+
 
     setEvents([...events, event]);
     setNewEvent({
@@ -322,7 +343,7 @@ export default function GroupEventPlanner() {
       date: new Date(),
       description: "",
       location: "",
-      image: null,
+      image: undefined,
       imageFile: null,
     });
     setPreviewImage(null);
@@ -790,7 +811,7 @@ export default function GroupEventPlanner() {
         >
           <div className="h-56 relative">
             <img
-              src={selectedEvent.image}
+              src={selectedEvent.image || '/api/placeholder/800/400'}
               alt={selectedEvent.title}
               className="w-full h-full object-cover"
             />
@@ -1422,6 +1443,7 @@ export default function GroupEventPlanner() {
   }
 
   interface Event {
+    image: string | Blob | undefined;
     id: string;
     title: string;
     date: Date;
@@ -1633,7 +1655,7 @@ export default function GroupEventPlanner() {
     });
 
     // Data for pie chart
-    const getPieData = (eventId) => {
+    const getPieData = (eventId:string) => {
       const event = rsvpStats.find((e) => e.id === eventId);
       if (!event) return [];
 
